@@ -1,0 +1,37 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - 'service.example.com'
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+    tls:
+      httpsRedirect: true  
+  - hosts:
+    - 'service.example.com'
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      credentialName: example-ssl
+      mode: SIMPLE
+---
+apiVersion: v1
+data:
+  tls.crt: <chain-cert>
+  tls.key: <key>
+kind: Secret
+metadata:
+  name: example-ssl
+  namespace: istio-system
+type: kubernetes.io/tls

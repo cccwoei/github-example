@@ -1,0 +1,49 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to Docker Registry
+      run: docker login -u ap-southeast-3@${{ secrets.ACCESS_KEY }} -p ${{ secrets.LOGIN_KEY }} swr.ap-southeast-3.myhuaweicloud.com
+
+    - name: Build Docker Image
+      run: docker build -t swr.ap-southeast-3.myhuaweicloud.com/example/student-service:${{ github.run_number }}  .
+      
+    - name: Push Docker Image
+      run: docker push swr.ap-southeast-3.myhuaweicloud.com/example/student-service:${{ github.run_number }} 
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4  
+      
+    - name: Set Kubernetes Context
+      uses: azure/k8s-set-context@v1
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBECONFIG }}
+          
+    - name: Deploy to Demo 
+      run: |
+        export version=${{ github.run_number }}
+        cat build/demo/deployment.yaml | envsubst | kubectl apply -f -   
